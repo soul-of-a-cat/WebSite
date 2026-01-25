@@ -1,0 +1,84 @@
+{% load thumbnail %}
+
+<article class="post-card">
+    <div class="post-card-header">
+        <div class="post-author">
+            <div class="author-avatar">
+                {% if post.user.profile.image %}
+                    <img src="{{ post.user.profile.get_image_50x50.url }}" alt="{{ post.user.username }}" class="avatar">
+                {% else %}
+                    <div class="avatar-placeholder">
+                        <i class="fas fa-user"></i>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="author-info">
+                <span class="author-name">{{ post.user.username }}</span>
+                <span class="post-date">{{ post.created|date:"d M Y в H:i" }}</span>
+            </div>
+        </div>
+
+        {% if user == post.user or user.is_staff %}
+        <div class="post-actions">
+            <div class="dropdown">
+                <button class="dropdown-toggle" type="button">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+                <div class="dropdown-menu">
+                    <a href="{% url 'posts:post-update' post.id %}" class="dropdown-item">
+                        <i class="fas fa-edit"></i> Редактировать
+                    </a>
+                    <a href="{% url 'posts:post-delete' post.id %}" class="dropdown-item delete">
+                        <i class="fas fa-trash"></i> Удалить
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="post-card-body">
+        <h3 class="post-title">
+            <a href="{% url 'posts:post-detail' post.id %}">{{ post.name }}</a>
+        </h3>
+
+        <div class="post-content-preview">
+            {{ post.text|striptags|truncatewords:30 }}
+        </div>
+
+        {% if post.images.exists %}
+        <div class="post-images-preview">
+            <div class="images-grid">
+                {% for image in post.images.all|slice:":3" %}
+                <div class="image-item">
+                    <img src="{{ image.image.url }}" alt="Изображение к посту" loading="lazy">
+                </div>
+                {% endfor %}
+                {% if post.images.count > 3 %}
+                <div class="image-more">
+                    +{{ post.images.count|add:"-3" }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="post-card-footer">
+        <div class="post-stats">
+            <span class="stat comments">
+                <i class="fas fa-comment"></i>
+                <span>{{ post.comments.count }}</span>
+            </span>
+        </div>
+
+        <div class="post-card-meta">
+            {% if post.updated != post.created %}
+            <span class="updated-badge">
+                <i class="fas fa-edit"></i>
+                Обновлено: {{ post.updated|date:"d M Y" }}
+            </span>
+            {% endif %}
+        </div>
+    </div>
+</article>

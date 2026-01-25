@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}Главная - Форум{% endblock %}
+
+{% block content %}
+<div class="forum-header">
+    <div class="forum-header-content">
+        <h1>
+            {% if has_search %}
+                <i class="fas fa-search"></i> Результаты поиска
+            {% else %}
+                Добро пожаловать на форум
+            {% endif %}
+        </h1>
+        {% if has_search %}
+            <div class="search-summary">
+                <p>По запросу "<strong>{{ search_query }}</strong>"</p>
+            </div>
+        {% endif %}
+        {% if user.is_authenticated and not has_search %}
+            <a href="{% url 'posts:post-create' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Новый пост
+            </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="posts-container">
+    <div class="posts-header">
+        <div class="posts-title-section">
+            {% if has_search %}
+                <h2><i class="fas fa-search"></i> Найденные посты</h2>
+            {% else %}
+                <h2><i class="fas fa-stream"></i> Последние посты</h2>
+            {% endif %}
+        </div>
+        <div class="posts-stats">
+            <span class="stat">
+                <i class="fas fa-comments"></i>
+                {% if has_search %}
+                {% with posts|length as found_count %}
+                Найдено: {{ found_count }} из {{ total_posts }}
+                {% endwith %}
+                {% else %}
+                Всего постов: {{ total_posts }}
+                {% endif %}
+            </span>
+            {% if has_search %}
+                <span class="stat">
+                    <i class="fas fa-clock"></i>
+                    Поисковый запрос: "{{ search_query }}"
+                </span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="posts-list">
+        {% for post in posts %}
+            {% include "includes/post_card.html" %}
+        {% empty %}
+            <div class="empty-state">
+                <div class="empty-icon">
+                    {% if has_search %}
+                        <i class="fas fa-search"></i>
+                    {% else %}
+                        <i class="fas fa-comments"></i>
+                    {% endif %}
+                </div>
+                <h3>
+                    {% if has_search %}
+                        Ничего не найдено
+                    {% else %}
+                        Пока нет постов
+                    {% endif %}
+                </h3>
+                <p>
+                    {% if has_search %}
+                        По вашему запросу "<strong>{{ search_query }}</strong>"
+                        не найдено ни одного поста.<br>
+                        Попробуйте изменить запрос или использовать другие ключевые слова.
+                    {% else %}
+                        Будьте первым, кто поделится своими мыслями!
+                    {% endif %}
+                </p>
+                <div class="empty-actions">
+                    {% if has_search %}
+                        <a href="{% url 'homepage:home' %}" class="btn btn-primary">
+                            <i class="fas fa-home"></i> На главную
+                        </a>
+                        <button onclick="history.back()" class="btn btn-outline">
+                            <i class="fas fa-arrow-left"></i> Назад
+                        </button>
+                    {% else %}
+                        {% if user.is_authenticated %}
+                            <a href="{% url 'posts:post-create' %}" class="btn btn-primary">
+                                Создать первый пост
+                            </a>
+                        {% else %}
+                            <a href="{% url 'users:login' %}" class="btn btn-primary">
+                                Войти, чтобы создать пост
+                            </a>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- Пагинация -->
+    {% if posts.has_other_pages %}
+    <div class="pagination-container">
+        <nav class="pagination">
+            {% if posts.has_previous %}
+            <a href="?page={{ posts.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}"
+               class="pagination-link prev">
+                <i class="fas fa-chevron-left"></i> Назад
+            </a>
+            {% endif %}
+
+            <div class="pagination-pages">
+                {% for num in posts.paginator.page_range %}
+                    {% if posts.number == num %}
+                    <span class="pagination-page active">{{ num }}</span>
+                    {% elif num > posts.number|add:'-3' and num < posts.number|add:'3' %}
+                    <a href="?page={{ num }}{% if search_query %}&q={{ search_query }}{% endif %}"
+                       class="pagination-page">{{ num }}</a>
+                    {% endif %}
+                {% endfor %}
+            </div>
+
+            {% if posts.has_next %}
+            <a href="?page={{ posts.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}"
+               class="pagination-link next">
+                Вперед <i class="fas fa-chevron-right"></i>
+            </a>
+            {% endif %}
+        </nav>
+
+        <div class="pagination-info">
+            Страница {{ posts.number }} из {{ posts.paginator.num_pages }}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
