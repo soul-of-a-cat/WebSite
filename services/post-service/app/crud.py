@@ -1,3 +1,5 @@
+from fastapi import HTTPException
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import selectinload
 
 from database import AsyncSession
@@ -20,10 +22,13 @@ class PostCRUD:
             user_id=owner_id,
             normalized_name=normalized_name,
         )
-        db.add(db_post)
-        await db.commit()
-        await db.refresh(db_post)
-        return db_post
+        try:
+            db.add(db_post)
+            await db.flush()
+            return db_post
+        except Exception:
+            await db.rollback()
+            raise
 
     @staticmethod
     async def get_post(db: AsyncSession, post_id: int, include_images: bool = True) -> Optional[models.Post]:
@@ -51,10 +56,13 @@ class PostCRUD:
             setattr(db_post, field, value)
 
         db_post.updated = datetime.utcnow()
-
-        await db.commit()
-        await db.refresh(db_post)
-        return db_post
+        try:
+            await db.flush()
+            await db.refresh(db_post)
+            return db_post
+        except SQLAlchemyError as e:
+            await db.rollback()
+            raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
     @staticmethod
     async def delete(db: AsyncSession, post_id: int) -> bool:
@@ -62,9 +70,13 @@ class PostCRUD:
         if not db_post:
             return False
 
-        await db.delete(db_post)
-        await db.commit()
-        return True
+        try:
+            await db.delete(db_post)
+            await db.flush()
+            return True
+        except SQLAlchemyError as e:
+            await db.rollback()
+            raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
     @staticmethod
     async def get_posts(
@@ -173,47 +185,80 @@ class PostCRUD:
             )
 
             db_posts.append(db_post)
+        try:
+            db.add_all(db_posts)
+            await db.flush()
 
-        db.add_all(db_posts)
-        await db.commit()
+            for post in db_posts:
+                await db.refresh(post)
 
-        for post in db_posts:
-            await db.refresh(post)
-
-        return db_posts
+            return db_posts
+        except SQLAlchemyError as e:
+            await db.rollback()
+            raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
     @staticmethod
     async def bulk_update(db: AsyncSession, post_ids: List[int], update_data: schemas.PostUpdate) -> Tuple[int, int]:
         if not post_ids:
             return 0, 0
 
-        stmt = select(models.Post.id).where(models.Post.id.in_(post_ids))
+        stmt = select(models.Post).where(models.Post.id.in_(post_ids))
         result = await db.execute(stmt)
-        existing_ids = set(result.scalars().all())
+        posts = result.scalars().all()
 
-        valid_ids = [post_id for post_id in post_ids if post_id in existing_ids]
+        valid_ids = [post.id for post in posts]
 
         if not valid_ids:
             return 0, 0
 
         data_dict = update_data.model_dump(exclude_unset=True)
+        updated_count = 0
 
         if "name" in data_dict:
-            temp_post = models.Post(name=data_dict["name"])
-            data_dict["normalized_name"] = temp_post.normalized_name
+            for i, post in enumerate(posts):
+                try:
+                    unique_name = f"{data_dict['name']}_{i + 1}" if len(posts) > 1 else data_dict['name']
+                    temp_post = models.Post(name=unique_name)
+                    normalized_name = temp_post.normalized_name
 
-        data_dict["updated"] = datetime.utcnow()
-        
-        update_stmt = (
-            update(models.Post)
-            .where(models.Post.id.in_(valid_ids))
-            .values(**data_dict)
-        )
+                    await models.Post.validate_unique_normalized_name(db, normalized_name, post.id)
 
-        result = await db.execute(update_stmt)
-        await db.commit()
-        
-        return len(valid_ids), result.rowcount
+                    update_dict = data_dict.copy()
+                    update_dict["name"] = unique_name
+                    update_dict["normalized_name"] = normalized_name
+                    update_dict["updated"] = datetime.utcnow()
+
+                    for field, value in update_dict.items():
+                        setattr(post, field, value)
+
+                    updated_count += 1
+                except HTTPException:
+                    continue
+        else:
+            data_dict["updated"] = datetime.utcnow()
+
+            update_dict = {k: v for k, v in data_dict.items() if k not in ["name", "normalized_name"]}
+
+            if update_dict:
+                update_stmt = (
+                    update(models.Post)
+                    .where(models.Post.id.in_(valid_ids))
+                    .values(**update_dict)
+                )
+
+                try:
+                    result = await db.execute(update_stmt)
+                    updated_count = result.rowcount
+                except SQLAlchemyError as e:
+                    await db.rollback()
+                    raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+        try:
+            await db.flush()
+            return len(valid_ids), updated_count
+        except SQLAlchemyError as e:
+            await db.rollback()
+            raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
     @staticmethod
     async def bulk_delete(db: AsyncSession, post_ids: List[int]) -> int:
@@ -222,9 +267,13 @@ class PostCRUD:
 
         delete_stmt = delete(models.Post).where(models.Post.id.in_(post_ids))
         result = await db.execute(delete_stmt)
-        await db.commit()
+        try:
+            await db.flush()
 
-        return result.rowcount
+            return result.rowcount
+        except SQLAlchemyError as e:
+            await db.rollback()
+            raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
     @staticmethod
     async def get_post_stats(db: AsyncSession, user_id: Optional[int] = None) -> Dict[str, Any]:
@@ -232,16 +281,17 @@ class PostCRUD:
         if user_id is not None:
             conditions.append(models.Post.user_id == user_id)
 
-        where_clause = and_(*conditions) if conditions else True
+        total_stmt = select(func.count(models.Post.id))
+        published_stmt = select(func.count(models.Post.id)).where(models.Post.is_published == True)
 
-        total_stmt = select(func.count(models.Post.id)).select_from(where_clause)
+        if conditions:
+            where_clause = and_(*conditions)
+            total_stmt = total_stmt.where(where_clause)
+            published_stmt = published_stmt.where(and_(models.Post.is_published == True, where_clause))
+
         total_result = await db.execute(total_stmt)
         total_posts = total_result.scalar() or 0
 
-        published_conditions = [models.Post.is_published == True]
-        if user_id is not None:
-            published_conditions.append(models.Post.user_id == user_id)
-        published_stmt = select(func.count(models.Post.id)).where(and_(*published_conditions))
         published_result = await db.execute(published_stmt)
         published_posts = published_result.scalar() or 0
 
@@ -288,9 +338,9 @@ class PostImageCRUD:
             await db_image.save_image(image_file, db)
             await db.refresh(db_image)
             return db_image
-        except Exception:
+        except SQLAlchemyError as e:
             await db.rollback()
-            return None
+            raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
     @staticmethod
     async def delete(db: AsyncSession, image_id: int) -> bool:
@@ -300,10 +350,13 @@ class PostImageCRUD:
 
         if not db_image:
             return False
-
-        await db.delete(db_image)
-        await db.commit()
-        return True
+        try:
+            await db.delete(db_image)
+            await db.flush()
+            return True
+        except SQLAlchemyError as e:
+            await db.rollback()
+            raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
     @staticmethod
     async def get_by_post(db: AsyncSession, post_id: int) -> List[models.PostImage]:

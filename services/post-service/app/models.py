@@ -13,7 +13,7 @@ from sqlalchemy import Boolean, String, Integer, DateTime, ForeignKey, select
 from sqlalchemy.orm import Mapped, mapped_column, validates, relationship, DeclarativeBase
 from sqlalchemy import exists
 from transliterate import translit
-from database import AsyncSession
+from database import AsyncSession, Base
 from PIL import Image
 from datetime import datetime
 
@@ -26,10 +26,6 @@ async def get_path_image(filename: str) -> str:
         name, ext = filename.rsplit('.', 1)
         return f"posts/{uuid.uuid4()}.{ext.lower()}"
     return f"posts/{uuid.uuid4()}.jpg"
-
-
-class Base(DeclarativeBase):
-    pass
 
 
 class Post(Base):
@@ -137,6 +133,7 @@ class PostImage(Base):
 
     post: Mapped["Post"] = relationship("Post", back_populates="images")
 
+    STATIC_DIR: ClassVar[str] = "static"
     IMAGE_UPLOAD_DIR: ClassVar[str] = "posts/"
     THUMBNAIL_SIZE: ClassVar[tuple[int, int]] = (300, 300)
 
@@ -159,27 +156,27 @@ class PostImage(Base):
                 raise HTTPException(status_code=400, detail="Неподдерживаемый формат файла")
 
             MAX_SIZE = 10 * 1024 * 1024  # 10MB
+
+            original_filename = image_file.filename
+
             content = await image_file.read()
             if len(content) > MAX_SIZE:
                 raise HTTPException(status_code=400, detail="Файл слишком большой")
 
-            await image_file.seek(0)
+            filename = await get_path_image(original_filename)
 
-            filename = await get_path_image(image_file.filename)
-
-            image_path = os.path.join(self.IMAGE_UPLOAD_DIR, filename)
+            image_path = os.path.join(self.STATIC_DIR, self.IMAGE_UPLOAD_DIR, filename)
             await makedirs(os.path.dirname(image_path), exist_ok=True)
 
             async with aiofiles.open(image_path, 'wb') as out_file:
-                content = await image_file.read()
                 await out_file.write(content)
 
-            thumbnail_path = os.path.join(self.IMAGE_UPLOAD_DIR, f"thumb_{filename}")
+            thumbnail_path = os.path.join(self.STATIC_DIR, self.IMAGE_UPLOAD_DIR, f"thumb_{filename}")
             await self._create_thumbnail(image_path, thumbnail_path)
 
-            self.image_path = image_path
-            self.thumbnail_path = thumbnail_path
-            await db.commit()
+            self.image_path = os.path.join(self.IMAGE_UPLOAD_DIR, filename)
+            self.thumbnail_path = os.path.join(self.IMAGE_UPLOAD_DIR, f"thumb_{filename}")
+            await db.flush()
 
             return self
         except Exception as e:

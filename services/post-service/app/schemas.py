@@ -167,15 +167,3 @@ class PostStatsResponse(BaseModel):
     posts_by_month: List[dict]
     average_images_per_post: float
     most_active_user: Optional[int] = None
-
-
-def validate_normalized_name(name: str) -> str:
-    try:
-        from transliterate import translit
-        transliterated = translit(name.lower(), 'ru', reversed=True)
-    except Exception:
-        transliterated = name.lower()
-
-    import re
-    normalized = re.sub(r"\W", "", transliterated)
-    return normalized

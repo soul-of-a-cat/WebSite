@@ -1,5 +1,7 @@
 from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.orm import declarative_base
+
 from config import settings
 
 # Асинхронный движок PostgreSQL
@@ -14,7 +16,7 @@ engine = create_async_engine(
 )
 
 # Асинхронная фабрика сессий
-AsyncSession = async_sessionmaker(
+AsyncSessionFactory = async_sessionmaker(
     engine,
     class_=AsyncSession,
     expire_on_commit=False,
@@ -22,9 +24,11 @@ AsyncSession = async_sessionmaker(
     autoflush=False,
 )
 
+Base = declarative_base()
+
 # Dependency для получения асинхронной сессии БД
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
-    async with AsyncSessionLocal() as session:
+    async with AsyncSessionFactory() as session:
         try:
             yield session
             await session.commit()
