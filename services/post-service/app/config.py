@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import List, Optional
 from pydantic_settings import BaseSettings
-from pydantic import AnyHttpUrl, PostgresDsn, validator, Field
+from pydantic import PostgresDsn, Field
 import secrets
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     TOKEN_ISSUER: str = Field(default="auth-service")
 
     # Настройки приложения
-    APP_NAME: str = "Auth Service"
+    APP_NAME: str = "Post Service"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False
 

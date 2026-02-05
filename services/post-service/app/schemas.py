@@ -1,6 +1,7 @@
 from datetime import datetime
-from typing import Optional, List
-from pydantic import BaseModel, Field, validator, ConfigDict
+from typing import Optional, List, Any, Dict
+from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator
+
 
 class BaseResponseSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -13,10 +14,11 @@ class ImageCreate(BaseModel):
     image: bytes
     filename: str
 
-    @validator("filename")
+    @field_validator("filename")
+    @classmethod
     def validator_filename(cls, v):
         if '.' in v:
-            ext = v.rsplit('.', 1)[1].lower()  # Берем последнюю часть после точки
+            ext = v.rsplit('.', 1)[1].lower()
             if ext not in ['jpg', 'jpeg', 'png', 'gif']:
                 raise ValueError('Неподдерживаемый формат файла')
         return v
@@ -27,11 +29,13 @@ class ImageResponse(ImageBase, BaseResponseSchema):
     thumbnail_url: Optional[str] = None
     post_id: int
 
-    @validator('image_url', 'thumbnail_url', pre=True)
-    def convert_urls(cls, v, info):
-        if info.field_name == 'image_url' and hasattr(v, 'image_url'):
+    @field_validator('image_url', 'thumbnail_url', mode="before")
+    @classmethod
+    def convert_urls(cls, v: Any, info) -> Optional[str]:
+        field_name = info.field_name
+        if hasattr(v, 'image_url') and field_name == 'image_url':
             return v.image_url
-        elif info.field_name == 'thumbnail_url' and hasattr(v, 'thumbnail_url'):
+        elif hasattr(v, 'thumbnail_url') and field_name == 'thumbnail_url':
             return v.thumbnail_url
         return v
 
@@ -42,10 +46,11 @@ class PostBase(BaseModel):
     user_id: int = Field(..., description="ID пользователя")
 
 class PostCreate(PostBase):
-    @validator('name', 'text')
-    def check_not_empty(cls, v, field):
+    @field_validator('name', 'text')
+    @classmethod
+    def check_not_empty(cls, v: str) -> str:
         if not v.strip():
-            raise ValueError(f'{field.name} не может быть пустым')
+            raise ValueError(f'Поле не может быть пустым')
         return v
 
 class PostUpdate(BaseModel):
@@ -53,10 +58,11 @@ class PostUpdate(BaseModel):
     text: Optional[str] = Field(None, min_length=2, description="Текст поста")
     is_published: Optional[bool] = Field(None, strict=True, description="Опубликован ли пост")
 
-    @validator('name', 'text')
-    def check_if_not_empty(cls, v, field):
+    @field_validator('name', 'text')
+    @classmethod
+    def check_if_not_empty(cls, v: Optional[str]) -> Optional[str]:
         if v is not None and not v.strip():
-            raise ValueError(f'{field.name} не может быть пустым')
+            raise ValueError(f'Поле не может быть пустым')
         return v
 
 class PostResponse(PostBase, BaseResponseSchema):
@@ -65,13 +71,6 @@ class PostResponse(PostBase, BaseResponseSchema):
     created: datetime
     updated: datetime
     images: List[ImageResponse] = []
-    
-    model_config = ConfigDict(
-        from_attributes=True,
-        json_encoders={
-            datetime: lambda v: v.isoformat() if v else None
-        }
-    )
 
 class PostListResponse(BaseResponseSchema):
     id: int
@@ -82,19 +81,6 @@ class PostListResponse(BaseResponseSchema):
     updated: datetime
     preview_text: Optional[str] = None
     thumbnail_url: Optional[str] = None
-
-    @validator("preview_text", pre=True)
-    def extract_preview(cls, v, values):
-        if "text" in values:
-            text = values["text"]
-            return text[:200] + "..." if len(text) > 200 else text
-        return v
-
-    @validator("thumbnail_url", pre=True)
-    def get_first_thumbnail(cls, v, values):
-        if 'images' in values and values['images']:
-            return values['images'][0].thumbnail_url
-        return None
 
 class PostFilter(BaseModel):
     search: Optional[str] = Field(None, description="Поиск по названию или тексту")
@@ -113,18 +99,21 @@ class PostSort(BaseModel):
     sort_by: str = Field(default="created", description="Поле для сортировки")
     sort_order: str = Field(default="desc", description="Порядок сортировки (asc/desc)")
 
-    @validator("sort_by")
+    @field_validator("sort_by")
+    @classmethod
     def validate_sort_field(cls, v):
         allowed_fields = ["id", "name", "created", "updated", "user_id"]
         if v not in allowed_fields:
             raise ValueError(f"Допустимые поля для сортировки: {', '.join(allowed_fields)}")
         return v
 
-    @validator('sort_order')
-    def validate_sort_order(cls, v):
-        if v.lower() not in ['asc', 'desc']:  # Приводим к нижнему регистру
+    @field_validator('sort_order')
+    @classmethod
+    def validate_sort_order(cls, v: str) -> str:
+        v_lower = v.lower()
+        if v_lower not in ['asc', 'desc']:
             raise ValueError('Порядок сортировки должен быть "asc" или "desc"')
-        return v.lower()
+        return v_lower
 
 class PaginationParams(BaseModel):
     page: int = Field(default=1, ge=1, description="Номер страницы")
@@ -138,19 +127,19 @@ class PaginationResponse(BaseModel):
     total_pages: int
 
 class PostDetailResponse(PostResponse):
-    image_count: int
+    image_count: int = 0
 
-    @validator("image_count", pre=True)
-    def count_images(cls, v, values):
-        if "images" in values:
-            return len(values["images"])
-        return 0
+    @model_validator(mode='after')
+    def count_images_validator(self) -> 'PostDetailResponse':
+        self.image_count = len(self.images)
+        return self
 
 class BulkPostCreate(BaseModel):
     posts: List[PostCreate] = Field(..., max_items=100, description="Список постов")
 
-    @validator("posts")
-    def validate_unique_names(cls, v):
+    @field_validator("posts")
+    @classmethod
+    def validate_unique_names(cls, v: List[PostCreate]) -> List[PostCreate]:
         names = [post.name for post in v]
         if len(names) != len(set(names)):
             raise ValueError('Имена постов должны быть уникальными')
@@ -164,6 +153,6 @@ class PostStatsResponse(BaseModel):
     total_posts: int
     published_posts: int
     draft_posts: int
-    posts_by_month: List[dict]
+    posts_by_month: List[Dict[str, Any]]
     average_images_per_post: float
     most_active_user: Optional[int] = None

@@ -10,12 +10,12 @@ import aiofiles
 from aiofiles.os import makedirs
 from fastapi import HTTPException, UploadFile
 from sqlalchemy import Boolean, String, Integer, DateTime, ForeignKey, select
-from sqlalchemy.orm import Mapped, mapped_column, validates, relationship, DeclarativeBase
+from sqlalchemy.orm import Mapped, mapped_column, validates, relationship
 from sqlalchemy import exists
 from transliterate import translit
 from database import AsyncSession, Base
 from PIL import Image
-from datetime import datetime
+from datetime import datetime, timezone
 
 ONLY_LETTERS_REGEX = re.compile(r"\W")
 
@@ -59,14 +59,14 @@ class Post(Base):
         DateTime,
         nullable=False,
         index=True,
-        default=datetime.utcnow
+        default=datetime.now(timezone.utc)
     )
     updated: Mapped[datetime] = mapped_column(
         DateTime,
         nullable=False,
         index=True,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow
+        default=datetime.now(timezone.utc),
+        onupdate=datetime.now(timezone.utc)
     )
 
     images: Mapped[list["PostImage"]] = relationship(
@@ -197,4 +197,4 @@ class PostImage(Base):
 
         loop = asyncio.get_event_loop()
         with ThreadPoolExecutor() as pool:
-            await loop.run_in_executor(pool, create_thumbnail_sync())
+            await loop.run_in_executor(pool, create_thumbnail_sync)
