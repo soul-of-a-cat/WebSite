@@ -19,9 +19,11 @@ import transliterate
 from database import Base
 from pathlib import Path
 
+from core.config import settings
+
 ONLY_LETTERS_REGEX = re.compile(r"\W")
 
-UPLOAD_DIR = Path("media")
+UPLOAD_DIR = Path(settings.UPLOAD_DIR)
 
 def get_path_image(instance, filename):
     ext = filename.split(".")[-1]
@@ -65,10 +67,10 @@ class AbstractImageModel(Base):
     __abstract__ = True
 
     IMAGE_SUBFOLDER: str = "images"
-    THUMBNAIL_SIZE: Tuple[int, int] = (300, 300)
+    THUMBNAIL_SIZE: Tuple[int, int] = settings.THUMBNAIL_SIZES["medium"]
     CREATE_THUMBNAIL: bool = True
-    ALLOWED_EXTENSIONS: Tuple[str, ...] = ('.jpg', '.jpeg', '.png', '.gif', '.webp')
-    MAX_FILE_SIZE: int = 10 * 1024 * 1024
+    ALLOWED_EXTENSIONS: Tuple[str, ...] = tuple(settings.ALLOWED_IMAGE_EXTENSIONS)
+    MAX_FILE_SIZE: int = settings.MAX_UPLOAD_SIZE
 
     image_filename: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     image_original_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
@@ -180,7 +182,7 @@ class AbstractImageModel(Base):
             return None
 
         base_url = f"{request.base_url}" if request else "/"
-        return f"{base_url}media/{self.image_path}"
+        return f"{base_url}{settings.MEDIA_URL}{self.image_path}"
 
     def get_thumbnail_url(self, request=None) -> Optional[str]:
         if not self.image_filename:
@@ -188,7 +190,7 @@ class AbstractImageModel(Base):
 
         base_url = f"{request.base_url}" if request else "/"
         thumb_path = f"{self.IMAGE_SUBFOLDER}/thumbnails/thumb_{self.image_filename}"
-        return f"{base_url}media/{thumb_path}"
+        return f"{base_url}{settings.MEDIA_URL}{thumb_path}"
 
     def has_image(self) -> bool:
         return bool(self.image_filename)
