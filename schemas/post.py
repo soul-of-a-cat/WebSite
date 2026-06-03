@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
 
-from schemas.base import NameResponseSchema, NameSchema, ImageSchema, ImageResponseSchema
+from schemas.base import NameResponseSchema, NameSchema, ImageResponseSchema
 
 class PostCreate(NameSchema):
     text: str = Field(..., min_length=1, max_length=5000)
@@ -22,9 +22,9 @@ class PostImageResponse(ImageResponseSchema):
 
 class PostResponse(NameResponseSchema):
     text: str
-    created_at: datetime
-    updated_at: datetime
-    image: Optional[PostImageResponse] = []
+    created: datetime
+    updated: datetime
+    images: List[PostImageResponse] = Field(default_factory=list)
     main_image_url: Optional[str] = None
     images_count: int = 0
 
