@@ -78,6 +78,7 @@ class Settings(BaseSettings):
     # ============ Файлы и медиа ============
     MEDIA_ROOT: str = Field("media", env="MEDIA_ROOT")
     MEDIA_URL: str = Field("/media/", env="MEDIA_URL")
+    UPLOAD_DIR: str = Field("uploads", env="UPLOAD_DIR")
 
     # Настройки загрузки изображений
     MAX_UPLOAD_SIZE: int = Field(10 * 1024 * 1024, env="MAX_UPLOAD_SIZE")  # 10MB
