@@ -19,11 +19,11 @@ class PostModel(AbstractNameModel):
         Text,
         nullable=False
     )
-    created_at: Mapped[datetime.datetime] = mapped_column(
+    created: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
         index=True,
-        default=lambda: datetime.datetime.now(datetime.timezone.utc)
+        default=datetime.datetime.now(datetime.timezone.utc)
     )
     updated: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True),
