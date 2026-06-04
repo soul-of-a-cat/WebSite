@@ -1,6 +1,6 @@
 from typing import Optional, List
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field, validator
+from pydantic import Field, field_validator
 
 
 class Settings(BaseSettings):
@@ -101,6 +101,8 @@ class Settings(BaseSettings):
         env="THUMBNAIL_SIZES"
     )
 
+    MAX_ATTEMPTS: int = Field(5, env="MAX_ATTEMPTS")
+
     # ============ Кеширование ============
     CACHE_ENABLED: bool = Field(True, env="CACHE_ENABLED")
     CACHE_TTL: int = Field(300, env="CACHE_TTL")  # 5 минут
@@ -164,7 +166,7 @@ class Settings(BaseSettings):
     def is_testing(self) -> bool:
         return self.ENVIRONMENT == "testing"
 
-    @validator("ALLOWED_ORIGINS", pre=True)
+    @field_validator("ALLOWED_ORIGINS", pre=True)
     def parse_allowed_origins(cls, value):
         if isinstance(value, str):
             return [origin.strip() for origin in value.split(",")]
