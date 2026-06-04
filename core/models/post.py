@@ -6,6 +6,9 @@ from sqlalchemy import Integer, DateTime, ForeignKey, Text, String
 from core.models.base import AbstractNameModel, AbstractImageModel
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from core.models.user import User
+
+
 class PostModel(AbstractNameModel):
     __abstract__ = False
     __tablename__ = "posts"
@@ -37,6 +40,18 @@ class PostModel(AbstractNameModel):
         back_populates="post",
         cascade="all, delete-orphan",
         lazy="selectin"
+    )
+    user_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey(
+            "user.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+    )
+    user: Mapped[User] = relationship(
+        "User",
+        back_populates="posts",
     )
 
     def get_main_image(self):

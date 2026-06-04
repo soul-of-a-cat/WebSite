@@ -4,6 +4,9 @@ from core.models.base import AbstractNameModel, AbstractImageModel
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import datetime
 
+from core.models.user import User
+
+
 class CommentModel(AbstractNameModel):
     __abstract__ = False
     __tablename__ = 'comments'
@@ -38,6 +41,18 @@ class CommentModel(AbstractNameModel):
         back_populates="comment",
         cascade="all, delete-orphan",
         lazy="selectin"
+    )
+    user_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey(
+            "user.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+    )
+    user: Mapped[User] = relationship(
+        "User",
+        back_populates="comments",
     )
 
     def get_all_images_url(self, request=None) -> List[Optional[str]]:
