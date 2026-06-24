@@ -34,3 +34,15 @@ class PostListResponse(BaseModel):
     page: int
     size: int
     pages: int
+
+class PostFormData(BaseModel):
+    name: str = Field(..., min_length=1, max_length=150)
+    text: str = Field(..., min_length=1, max_length=5000)
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "name": "Мой новый пост",
+                "text": "Это содержание моего поста ..."
+            }
+        }
