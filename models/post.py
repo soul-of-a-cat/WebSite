@@ -3,10 +3,10 @@ from typing import List, Optional
 
 from sqlalchemy import Integer, DateTime, ForeignKey, Text, String
 
-from core.models.base import AbstractNameModel, AbstractImageModel
+from models.base import AbstractNameModel, AbstractImageModel
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from core.models.user import User
+from models.user import User
 
 
 class PostModel(AbstractNameModel):
@@ -32,8 +32,8 @@ class PostModel(AbstractNameModel):
         DateTime(timezone=True),
         nullable=False,
         index=True,
-        default=datetime.datetime.now(datetime.timezone.utc),
-        onupdate=datetime.datetime.now(datetime.timezone.utc)
+        default=lambda: datetime.datetime.now(datetime.timezone.utc),
+        onupdate=lambda: datetime.datetime.now(datetime.timezone.utc)
     )
     images: Mapped[List["PostImageModel"]] = relationship(
         "PostImageModel",

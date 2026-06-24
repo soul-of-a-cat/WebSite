@@ -16,7 +16,7 @@ from sqlalchemy import (
     Boolean, event
 )
 import transliterate
-from database import Base
+from core.database import Base
 from pathlib import Path
 
 from core.config import settings

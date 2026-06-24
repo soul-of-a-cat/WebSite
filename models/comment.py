@@ -1,10 +1,10 @@
 from typing import Optional, List
 from sqlalchemy import Integer, DateTime, ForeignKey, Text, String
-from core.models.base import AbstractNameModel, AbstractImageModel
+from models.base import AbstractNameModel, AbstractImageModel
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import datetime
 
-from core.models.user import User
+from models.user import User
 
 
 class CommentModel(AbstractNameModel):

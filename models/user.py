@@ -4,13 +4,13 @@ from typing import List, TYPE_CHECKING
 from sqlalchemy import String, Integer, ForeignKey, DateTime, Boolean, event
 
 from core.config import settings
-from core.models.base import AbstractImageModel, Base
+from models.base import AbstractImageModel, Base
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from utils.password import password_hasher
 
 if TYPE_CHECKING:
-    from core.models.post import PostModel
-    from core.models.comment import CommentModel
+    from models.post import PostModel
+    from models.comment import CommentModel
 
 
 class User(Base):

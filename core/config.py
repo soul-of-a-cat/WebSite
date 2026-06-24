@@ -166,7 +166,7 @@ class Settings(BaseSettings):
     def is_testing(self) -> bool:
         return self.ENVIRONMENT == "testing"
 
-    @field_validator("ALLOWED_ORIGINS", pre=True)
+    @field_validator("ALLOWED_ORIGINS", mode="before")
     def parse_allowed_origins(cls, value):
         if isinstance(value, str):
             return [origin.strip() for origin in value.split(",")]
