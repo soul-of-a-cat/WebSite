@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Вход - Форум{% endblock %}
+
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-form">
+        <h1>Вход в аккаунт</h1>
+
+        <form method="post" action="{% url 'users:login' %}">
+            {% csrf_token %}
+            {% include "includes/form.html" with form=form submit_text="Войти" %}
+        </form>
+
+        <div class="auth-links">
+            <p><a href="{% url 'users:password_reset' %}">{% trans "Забыли пароль?" %}</a></p>
+            <p>Нет аккаунта? <a href="{% url 'users:signup' %}">Зарегистрируйтесь</a></p>
+        </div>
+    </div>
+</div>
+{% endblock content %}

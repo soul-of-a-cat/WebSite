@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Удаление комментария" %}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-6 mx-auto">
+            <div class="card">
+                <div class="card-header">
+                    <h4>{% trans "Удаление комментария" %}</h4>
+                </div>
+                <div class="card-body">
+                    <p>{% trans "Вы уверены, что хотите удалить этот комментарий?" %}</p>
+                    
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <p class="card-text">{{ object.text }}</p>
+                            <small class="text-muted">
+                                {% trans "Автор:" %} {{ object.user.username }} | 
+                                {% trans "Создан:" %} {{ object.created|date:"d.m.Y H:i" }}
+                            </small>
+                        </div>
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-danger">
+                                {% trans "Да, удалить" %}
+                            </button>
+                            <a href="{% url 'posts:post-detail' pk=object.post.pk %}" class="btn btn-secondary">
+                                {% trans "Отмена" %}
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,19 @@
+<footer class="footer">
+    <div class="container">
+        <p>
+            <script>
+                let date_now = Date("{% now "Y-m-d\TH:i:s\Z" %}");
+                let date_local = new Date();
+                let diff = Math.abs((date_now - date_local) / 1000 * 60 * 60);
+                if (diff < 24) {
+                    document.getElementById('date').innerHTML = date_local.getFullYear();
+                } else {
+                    document.getElementById('date').innerHTML = {% now "Y" %};
+                }
+            </script>
+            <noscript>
+                {% now "Y" %}
+            </noscript>
+        </p>
+    </div>
+</footer>

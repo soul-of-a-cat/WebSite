@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Редактирование комментария" %}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header">
+                    <h4>{% trans "Редактирование комментария" %}</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+
+                        <div class="mb-3">
+                            {{ form.text.label_tag }}
+                            {{ form.text }}
+                            {% if form.text.errors %}
+                            <div class="text-danger">
+                                {% for error in form.text.errors %}
+                                <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <h5>{% trans "Изображения комментария" %}</h5>
+                        {{ image_formset.management_form }}
+                        <div id="image-forms">
+                            {% for form in image_formset %}
+                            <div class="card mb-3 image-form">
+                                <div class="card-body">
+                                    {{ form.id }}
+                                    {% if form.instance.image %}
+                                    <div class="mb-2">
+                                        <img src="{{ form.instance.get_image_300x300.url }}"
+                                             alt="Current image"
+                                             class="img-thumbnail"
+                                             style="max-height: 150px;">
+                                        <br>
+                                        <small>{% trans "Текущее изображение" %}</small>
+                                    </div>
+                                    {% endif %}
+                                    <div class="row">
+                                        <div class="col-9">
+                                            {{ form.image }}
+                                        </div>
+                                        <div class="col-3">
+                                            {% if image_formset.can_delete %}
+                                            <div class="form-check mt-2">
+                                                {{ form.DELETE }}
+                                                <label class="form-check-label" for="{{ form.DELETE.id_for_label }}">
+                                                    {% trans "Удалить" %}
+                                                </label>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    {% if form.image.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.image.errors %}
+                                        <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                {% trans "Сохранить изменения" %}
+                            </button>
+                            <a href="{{ view.get_success_url }}" class="btn btn-secondary">
+                                {% trans "Отмена" %}
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

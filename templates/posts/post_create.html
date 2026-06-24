@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}Создать пост - Форум{% endblock %}
+
+{% block content %}
+<div class="post-create-container">
+    <div class="post-create-header">
+        <div class="breadcrumb">
+            <a href="{% url 'homepage:home' %}">Главная</a> >
+            <span>Создать пост</span>
+        </div>
+        <h1>Создать новый пост</h1>
+        <p class="subtitle">Поделитесь своими мыслями с сообществом</p>
+    </div>
+
+    <div class="post-create-content">
+        <form method="post" enctype="multipart/form-data" class="post-create-form">
+            {% csrf_token %}
+
+            <div class="form-section">
+                <h3>Основная информация</h3>
+
+                {% with form=form submit_text=False %}
+                    {% include "includes/form.html" %}
+                {% endwith %}
+            </div>
+
+            <div class="form-section">
+                <h3>Изображения</h3>
+                <p class="form-help-text">Вы можете загрузить до 10 изображений к вашему посту</p>
+
+                <div id="image-forms">
+                    {{ image_formset.management_form }}
+
+                    {% for form in image_formset %}
+                    <div class="image-form-item">
+                        <div class="form-group">
+                            <label for="{{ form.image.id_for_label }}">
+                                Изображение {{ forloop.counter }}
+                            </label>
+                            {{ form.image }}
+                            {% if form.image.errors %}
+                                <div class="form-errors">
+                                    {% for error in form.image.errors %}
+                                        <span class="error-text">{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        {% if form.instance.pk %}{{ form.DELETE }}{% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Кнопка для добавления новых полей изображений -->
+                <button type="button" id="add-image" class="btn btn-outline-secondary">
+                    <i class="fas fa-plus"></i> Добавить еще одно изображение
+                </button>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-paper-plane"></i> Опубликовать пост
+                </button>
+                <a href="{% url 'homepage:home' %}" class="btn btn-secondary">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

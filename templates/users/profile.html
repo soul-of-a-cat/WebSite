@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% load static %}
+{% load thumbnail %}
+{% load i18n %}
+
+{% block title %}
+{% trans "Профиль пользователя" %} - {{ user.username }}
+{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    <div class="profile-header">
+        <h1>Профиль пользователя</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'homepage:home' %}">Главная</a> >
+            <span>Профиль</span>
+        </div>
+    </div>
+
+    <div class="profile-content">
+        <form method="post" enctype="multipart/form-data" class="profile-form">
+            {% csrf_token %}
+
+            <input type="hidden" name="profile-clear_avatar" id="avatar-clear" value="false">
+            <input type="file" name="profile-image" id="id_profile-image" accept="image/*" style="display: none;">
+
+            <div class="profile-main">
+                <div class="profile-avatar-section">
+                    <div class="avatar-container">
+                        <div class="avatar-preview">
+                            {% if user.profile.image %}
+                                <img src="{{ user.profile.get_image_300x300.url }}" alt="Аватар" id="avatar-preview" class="avatar-image">
+                            {% else %}
+                                <div class="avatar-placeholder" id="avatar-preview">
+                                    <i class="fas fa-user-circle"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="avatar-actions">
+                            <label for="id_profile-image" class="btn btn-secondary btn-small change-photo-btn">
+                                <i class="fas fa-camera"></i> Сменить фото
+                            </label>
+                            {% if user.profile.image %}
+                            <button type="button" class="btn btn-outline btn-small remove-photo-btn" id="remove-avatar">
+                                <i class="fas fa-trash"></i> Удалить фото
+                            </button>
+                            {% endif %}
+                        </div>
+                        <div class="file-info" id="file-info" style="display: none;">
+                            <span>Выбран файл: </span>
+                            <span id="file-name"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-fields">
+                    <div class="profile-form-section">
+                        <h3>Основная информация</h3>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="id_user-username">Имя пользователя:</label>
+                                <input type="text" name="user-username" id="id_user-username"
+                                       value="{{ user.username }}" readonly class="readonly-field">
+                                <small class="field-help">Имя пользователя нельзя изменить</small>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="id_user-first_name">Имя:</label>
+                                {{ form.user.first_name }}
+                                {% if form.user.first_name.errors %}
+                                <div class="field-errors">
+                                    {% for error in form.user.first_name.errors %}
+                                    <span class="error">{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="form-group">
+                                <label for="id_user-last_name">Фамилия:</label>
+                                {{ form.user.last_name }}
+                                {% if form.user.last_name.errors %}
+                                <div class="field-errors">
+                                    {% for error in form.user.last_name.errors %}
+                                    <span class="error">{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="id_user-email">Адрес электронной почты:</label>
+                            {{ form.user.email }}
+                            {% if form.user.email.errors %}
+                            <div class="field-errors">
+                                {% for error in form.user.email.errors %}
+                                <span class="error">{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            <small class="field-help">На этот адрес будут приходить уведомления</small>
+                        </div>
+                    </div>
+
+                    <div class="profile-form-section">
+                        <h3>Дополнительная информация</h3>
+
+                        <div class="form-group">
+                            <label for="id_profile-birthday">Дата рождения:</label>
+                            {{ form.profile.birthday }}
+                            {% if form.profile.birthday.errors %}
+                            <div class="field-errors">
+                                {% for error in form.profile.birthday.errors %}
+                                <span class="error">{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            <small class="field-help">Формат: ДД.ММ.ГГГГ</small>
+                        </div>
+                    </div>
+
+                    <div class="profile-form-section">
+                        <h3>Статистика на форуме</h3>
+                        <div class="profile-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Дата регистрации:</span>
+                                <span class="stat-value">{{ user.date_joined|date:"d.m.Y" }}</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Попытки входа:</span>
+                                <span class="stat-value">{{ user.profile.attempts_count }}</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Последний визит:</span>
+                                <span class="stat-value">{{ user.last_login|date:"d.m.Y H:i"|default:"Недавно" }}</span>
+                            </div>
+                            {% if user.profile.block_date %}
+                            <div class="stat-item">
+                                <span class="stat-label">Дата блокировки:</span>
+                                <span class="stat-value">{{ user.profile.block_date|date:"d.m.Y H:i" }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {% for error in form.non_field_errors %}
+                <div>{{ error }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="form-actions-center">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Сохранить изменения
+                </button>
+                <a href="{% url 'homepage:home' %}" class="btn btn-secondary">Отмена</a>
+                <a href="{% url 'users:password_change' %}" class="btn btn-outline">
+                    <i class="fas fa-key"></i> Сменить пароль
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock content %}

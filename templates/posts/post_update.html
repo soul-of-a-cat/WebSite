@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}Редактировать пост - Форум{% endblock %}
+
+{% block content %}
+<div class="post-update-container">
+    <div class="post-update-header">
+        <div class="breadcrumb">
+            <a href="{% url 'homepage:home' %}">Главная</a> >
+            <a href="{% url 'posts:post-detail' post.pk %}">Пост</a> > 
+            <span>Редактирование</span>
+        </div>
+        <h1>Редактировать пост</h1>
+        <p class="subtitle">Внесите изменения в ваш пост</p>
+    </div>
+
+    <div class="post-update-content">
+        <form method="post" enctype="multipart/form-data" class="post-update-form">
+            {% csrf_token %}
+            
+            <div class="form-section">
+                <h3>Основная информация</h3>
+                
+                {% with form=form submit_text=False %}
+                    {% include "includes/form.html" %}
+                {% endwith %}
+            </div>
+
+            <div class="form-section">
+                <h3>Изображения</h3>
+                <p class="section-help">Вы можете управлять изображениями поста</p>
+                
+                <div id="image-forms">
+                    {{ image_formset.management_form }}
+                    {% for form in image_formset %}
+                    <div class="image-form-item">
+                        <div class="form-group">
+                            {% if form.instance.image %}
+                                <div class="existing-image">
+                                    <img src="{{ form.instance.image.url }}" alt="Текущее изображение" class="image-preview">
+                                    <div class="image-actions">
+                                        {{ form.DELETE }} 
+                                        <label for="{{ form.DELETE.id_for_label }}">Удалить изображение</label>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <label>Новое изображение</label>
+                            {% endif %}
+                            
+                            {{ form.image }}
+                            
+                            {% for hidden in form.hidden_fields %}
+                                {{ hidden }}
+                            {% endfor %}
+                            
+                            {% if form.image.errors %}
+                            <div class="field-errors">
+                                {% for error in form.image.errors %}
+                                <span class="error">{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <button type="button" id="add-image" class="btn btn-outline btn-small">
+                    <i class="fas fa-plus"></i> Добавить изображение
+                </button>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Сохранить изменения
+                </button>
+                <a href="{% url 'posts:post-detail' post.pk %}" class="btn btn-secondary">Отмена</a>
+                <a href="{% url 'posts:post-delete' post.pk %}" class="btn btn-danger">
+                    <i class="fas fa-trash"></i> Удалить пост
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
