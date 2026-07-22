@@ -6,6 +6,8 @@ from typing import Tuple, Optional
 import aiofiles
 from PIL import Image
 from io import BytesIO
+
+from fastapi import UploadFile
 from sqlalchemy.orm import (
     Mapped,
     mapped_column,
@@ -16,6 +18,8 @@ from sqlalchemy import (
     Boolean, event
 )
 import transliterate
+from sqlalchemy.orm.persistence import save_obj
+
 from core.database import Base
 from pathlib import Path
 
@@ -128,6 +132,10 @@ class AbstractImageModel(Base):
             "path": self.image_path,
             "full_path": str(file_path)
         }
+
+    async def save_upload(self, upload: UploadFile):
+        data = await upload.read()
+        await self.save_image(data, upload.filename)
 
     async def _create_thumbnail(self, file_data: bytes, filename: str) -> None:
         try:
