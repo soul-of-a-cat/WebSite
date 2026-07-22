@@ -94,7 +94,7 @@ class PostImageModel(AbstractImageModel):
     order: Mapped[int] = mapped_column(
         Integer,
         default=0,
-        nullable=False,
+        nullable=True,
         comment="Порядок отображения"
     )
 
@@ -111,4 +111,4 @@ class PostImageModel(AbstractImageModel):
     )
 
     def __repr__(self):
-        return f"<PostImage(id={self.id}, post_id={self.post_id}, order={self.order})>"
+        return f"<PostImage(id={self.id}, post_id={self.post_id})>"
