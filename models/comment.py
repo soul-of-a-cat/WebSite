@@ -5,6 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 import datetime
 
 from models.user import User
+from models.post import PostModel
 
 
 class CommentModel(AbstractNameModel):
@@ -54,6 +55,18 @@ class CommentModel(AbstractNameModel):
         "User",
         back_populates="comments",
     )
+    post_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey(
+            "post.id",
+            ondelete="CASCADE",
+        ),
+        nullable=True,
+    )
+    post: Mapped[PostModel] = relationship(
+        "PostModel",
+        back_populates="comments",
+    )
 
     def get_all_images_url(self, request=None) -> List[Optional[str]]:
         return [img.get_image_url(request) for img in self.images if img.has_image()]
@@ -61,51 +74,46 @@ class CommentModel(AbstractNameModel):
     def __repr__(self):
         return f"<Comment(id={self.id}, name={self.name[:30]})>"
 
-    class CommentImageModel(AbstractImageModel):
-        __abstract__ = False
-        __tablename__ = 'comment_images'
+class CommentImageModel(AbstractImageModel):
+    __abstract__ = False
+    __tablename__ = 'comment_images'
+    IMAGE_SUBFOLDER = "comments"
 
-        IMAGE_SUBFOLDER = "comments"
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        autoincrement=True
+    )
+    comment_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey(
+            'comments.id',
+            ondelete='CASCADE',
+            onupdate='CASCADE',
+        ),
+        nullable=False,
+        index=True,
+    )
+    comment: Mapped["CommentModel"] = relationship(
+        "CommentModel",
+        back_populates="images",
+    )
+    order: Mapped[int] = mapped_column(
+        Integer,
+        default=0,
+        nullable=False,
+        comment="Порядок отображения"
+    )
+    alt_text: Mapped[str] = mapped_column(
+        String(255),
+        nullable=True,
+        comment="Alt текст для изображения"
+    )
+    title: Mapped[str] = mapped_column(
+        String(255),
+        nullable=True,
+        comment="Заголовок изображения"
+    )
 
-        id: Mapped[int] = mapped_column(
-            Integer,
-            primary_key=True,
-            autoincrement=True
-        )
-        comment_id: Mapped[int] = mapped_column(
-            Integer,
-            ForeignKey(
-                'comments.id',
-                ondelete='CASCADE',
-                onupdate='CASCADE',
-            ),
-            nullable=False,
-            index=True,
-        )
-
-        comment: Mapped["CommentModel"] = relationship(
-            "CommentModel",
-            back_populates="images",
-        )
-
-        order: Mapped[int] = mapped_column(
-            Integer,
-            default=0,
-            nullable=False,
-            comment="Порядок отображения"
-        )
-
-        alt_text: Mapped[str] = mapped_column(
-            String(255),
-            nullable=True,
-            comment="Alt текст для изображения"
-        )
-
-        title: Mapped[str] = mapped_column(
-            String(255),
-            nullable=True,
-            comment="Заголовок изображения"
-        )
-
-        def __repr__(self):
-            return f"<CommentImage(id={self.id}, comment_id={self.comment_id}, order={self.order})>"
+    def __repr__(self):
+        return f"<CommentImage(id={self.id}, comment_id={self.comment_id}, order={self.order})>"
