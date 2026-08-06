@@ -2,6 +2,7 @@ from fastapi import UploadFile, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from models.user import User
 from schemas.post import PostCreate, PostUpdate
 from models.post import PostModel, PostImageModel
 from sqlalchemy import select
@@ -11,13 +12,14 @@ class PostService:
     async def create(
             session: AsyncSession,
             data: PostCreate,
-            images: list[UploadFile]
+            images: list[UploadFile],
+            user: User
     ) -> PostModel:
         post = PostModel(
             name=data.name,
             text=data.text,
             is_published=True,
-            user_id=1,
+            user=user,
 
         )
         post.set_normalized_name()
@@ -56,8 +58,14 @@ class PostService:
     @staticmethod
     async def delete(
             session: AsyncSession,
-            post: PostModel
+            post: PostModel,
+            user: User
     ):
+        if post.user_id != user.id:
+            raise HTTPException(
+                status_code=403,
+                detail="Недостаточно прав"
+            )
         await session.delete(post)
         await session.commit()
 
@@ -68,6 +76,7 @@ class PostService:
             data: PostUpdate,
             deleted_images_ids: list[int],
             new_images: list[UploadFile],
+            user: User
     ) -> PostModel | None:
         result = await session.execute(
             select(PostModel)
@@ -79,6 +88,12 @@ class PostService:
 
         if post is None:
             raise HTTPException(404, "Пост не найден")
+
+        if post.user_id != user.id:
+            raise HTTPException(
+                status_code=403,
+                detail="Недостаточно прав"
+            )
 
         post.name = data.name
         post.text = data.text
