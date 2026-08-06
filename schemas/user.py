@@ -82,9 +82,18 @@ class UserPasswordReset(BaseModel):
             raise ValueError('Пароли не совпадают')
         return value
 
+class UserUpdate(BaseModel):
+    email: EmailStr
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    username: str = Field(..., min_length=3, max_length=50)
+
 class ProfileResponse(BaseModel):
     id: int
     birthday: Optional[datetime] = None
     attempts_count: int
     block_date: Optional[datetime] = None
     user_id: int
+
+class ProfileUpdate(BaseModel):
+    birthday: Optional[datetime] = None
