@@ -6,6 +6,7 @@ from sqlalchemy import Integer, DateTime, ForeignKey, Text, String
 from models.base import AbstractNameModel, AbstractImageModel
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from models.comment import CommentModel
 from models.user import User
 
 
@@ -52,6 +53,9 @@ class PostModel(AbstractNameModel):
     user: Mapped[User] = relationship(
         "User",
         back_populates="posts",
+    )
+    comments: Mapped[List["CommentModel"]] = relationship(
+        back_populates="post",
     )
 
     def get_main_image(self):
